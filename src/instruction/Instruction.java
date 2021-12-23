@@ -166,7 +166,9 @@ public class Instruction {
             case shl:
             case shr:
             case and:
+                return String.format("%s = and %s %s, %s", this.save_at, this.type, this.op1, this.op2);
             case or:
+                return String.format("%s = or %s %s, %s", this.save_at, this.type, this.op1, this.op2);
             case xor:
             case not:
             case icmp_sle:
@@ -254,13 +256,13 @@ public class Instruction {
                         s.append(String.format("i32 %s", e.getName()));
                     }
 //                    else if(e.getType() == SymbolType.Iteral){
-//                        s.append(String.format("i32 %%%s", e.getName()));
+//                        s.append(String.format("i32 %%a%s", e.getName()));
 //                    }
 //                    else if(e.getType() == SymbolType.Local){
-//                        s.append(String.format("i32* %%%s", e.getId()));
+//                        s.append(String.format("i32* %%a%s", e.getId()));
 //                    }
                     else{
-                        s.append(String.format("i32 %%%s", e.getId()));
+                        s.append(String.format("i32 %%a%s", e.getId()));
                     }
                     break;
                 case INT_POINTER:
@@ -268,10 +270,10 @@ public class Instruction {
                         s.append(String.format("i32* %s", e.getName()));
                     }
 //                    else if(e.getType() == SymbolType.Iteral){
-//                        s.append(String.format("i32* %%%s", e.getName()));
+//                        s.append(String.format("i32* %%a%s", e.getName()));
 //                    }
                     else{
-                        s.append(String.format("i32* %%%s", e.getId()));
+                        s.append(String.format("i32* %%a%s", e.getId()));
                     }
                     break;
                 case NUMBER_LITERAL:

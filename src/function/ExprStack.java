@@ -17,22 +17,25 @@ public class ExprStack {
     public Stack<SymbolEntry> num_stack = new Stack<>();
 
     int[][] priority ={
-            {1,  1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,  -1},
-            {1,  1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,   -1},
-            {1,  1, 1, 1, 1,-1, 1,  1, 1, 1, 1, 1, 1,   -1},
-            {1,  1, 1, 1, 1,-1, 1,  1, 1, 1, 1, 1, 1,   -1},
-            {1,  1, 1, 1, 1,-1, 1,  1, 1, 1, 1, 1, 1,   -1}, /**/
-            {-1,-1,-1,-1,-1,-1,100,-1,-1,-1,-1,-1,-1,   -1},
-            {-1,-1,-1,-1,-1, 0, 0, -1,-1,-1,-1,-1,-1   ,-1},
+            {1,  1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {1,  1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {1,  1, 1, 1, 1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {1,  1, 1, 1, 1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {1,  1, 1, 1, 1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1,100,  -1,-1,-1,-1,-1,-1,  1, 1, -1},
+            {-1,-1,-1,-1,-1, 0, 0,   -1,-1,-1,-1,-1,-1,  1, 1, -1},
 
-            {-1,-1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,      -1},
-            {-1,-1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,      -1},
-            {-1,-1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,      -1},
-            {-1,-1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,      -1},
-            {-1,-1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,      -1},
-            {-1,-1,-1,-1,-1,-1, 1,  1,1,1,1,1,1,      -1},
+            {-1,-1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1, 1,    1, 1, 1, 1, 1, 1,  1, 1, -1},
 
-            { 1, 1, 1, 1, 1,-1, 1,  1,1,1,1,1,1    ,-1}
+            {-1,-1,-1,-1,-1,-1, 1,    -1,-1,-1,-1,-1,-1,  1, 1, -1},
+            {-1,-1,-1,-1,-1,-1, 1,    -1,-1,-1,-1,-1,-1,  -1, 1, -1},
+
+            { 1, 1, 1, 1, 1,-1, 1,    1, 1, 1, 1, 1, 1,   1, 1, -1}
 
     };
 
@@ -70,6 +73,10 @@ public class ExprStack {
             return 11;
         } else if(tokenType== TokenType.NEQ){
             return 12;
+        } else if(tokenType== TokenType.AND){
+            return 13;
+        } else if(tokenType== TokenType.OR){
+            return 14;
         }
         return -1;
     }
@@ -93,9 +100,9 @@ public class ExprStack {
         }
         else{
             // 是命名变量，需要load进编译变量再计算
-            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%" + index_to++);
+            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%a" + index_to++);
             op1_num = String.valueOf(res.getName());
-            res_ins.add(new Instruction(Operation.load, TokenType.INT_KW, "%" + op1.getId(), null, res.getName()));
+            res_ins.add(new Instruction(Operation.load, TokenType.INT_KW, "%a" + op1.getId(), null, res.getName()));
         }
         if(op2.isIteral()){
             op2_num = String.valueOf(op2.getValue());
@@ -104,24 +111,28 @@ public class ExprStack {
             op2_num = op2.getName();
         }
         else{
-            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%" + index_to++);
+            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%a" + index_to++);
             op2_num = String.valueOf(res.getName());
-            res_ins.add(new Instruction(Operation.load, TokenType.INT_KW, "%" + op2.getId(), null, res.getName()));
+            res_ins.add(new Instruction(Operation.load, TokenType.INT_KW, "%a" + op2.getId(), null, res.getName()));
         }
         // 结果存在一个编译变量里
-        SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%" + index_to++);
+        SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%a" + index_to++);
         switch (top) {
             case LT:
-                res_ins.add(new Instruction(Operation.icmp_slt, TokenType.INT_KW, op1_num, op2_num, res.getName()));
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.icmp_slt, TokenType.I1, op1_num, op2_num, res.getName()));
                 break;
             case LE:
-                res_ins.add(new Instruction(Operation.icmp_sle, TokenType.INT_KW, op1_num, op2_num, res.getName()));
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.icmp_sle, TokenType.I1, op1_num, op2_num, res.getName()));
                 break;
             case GT:
-                res_ins.add(new Instruction(Operation.icmp_sgt, TokenType.INT_KW, op1_num, op2_num, res.getName()));
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.icmp_sgt, TokenType.I1, op1_num, op2_num, res.getName()));
                 break;
             case GE:
-                res_ins.add(new Instruction(Operation.icmp_sge, TokenType.INT_KW, op1_num, op2_num, res.getName()));
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.icmp_sge, TokenType.I1, op1_num, op2_num, res.getName()));
                 break;
             case PLUS:
                 res_ins.add(new Instruction(Operation.add, TokenType.INT_KW, op1_num, op2_num, res.getName()));
@@ -139,17 +150,27 @@ public class ExprStack {
                 // a/b,结果在res里，用这个结果*b
                 res_ins.add(new Instruction(Operation.sdiv, TokenType.INT_KW, op1_num, op2_num, res.getName()));
                 // res1 * b，结果在res2里
-                SymbolEntry res2 = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%" + index_to++);
+                SymbolEntry res2 = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%a" + index_to++);
                 res_ins.add(new Instruction(Operation.mul, TokenType.INT_KW, res.getName(), op2_num, res2.getName()));
                 // a - res2, 结果在res3里
-                res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%" + index_to++);
+                res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%a" + index_to++);
                 res_ins.add(new Instruction(Operation.sub, TokenType.INT_KW, op1_num, res2.getName(), res.getName()));
                 break;
             case EQ:
-                res_ins.add(new Instruction(Operation.icmp_eq, TokenType.INT_KW, op1_num, op2_num, res.getName()));
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.icmp_eq, TokenType.I1, op1_num, op2_num, res.getName()));
                 break;
             case NEQ:
-                res_ins.add(new Instruction(Operation.icmp_ne, TokenType.INT_KW, op1_num, op2_num, res.getName()));
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.icmp_ne, TokenType.I1, op1_num, op2_num, res.getName()));
+                break;
+            case AND:
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.and, TokenType.I1, op1_num, op2_num, res.getName()));
+                break;
+            case OR:
+                res.setTokenType(TokenType.I1);
+                res_ins.add(new Instruction(Operation.or, TokenType.I1, op1_num, op2_num, res.getName()));
                 break;
         }
         // 把计算结果存入
@@ -219,14 +240,24 @@ public class ExprStack {
         return num_stack.peek();
     }
 
-    public List<Instruction> beforeGetTopNum(int index) {
+    public List<Instruction> beforeGetTopNum(int index, TokenType tt) {
         index_to = index;
         List<Instruction> res_ins = new ArrayList<>();
         SymbolEntry se = num_stack.peek();
         if(se.getType() == SymbolType.Local){
             num_stack.pop();
-            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%" + index_to++);
-            res_ins.add(new Instruction(Operation.load, TokenType.INT_KW, "%" + se.getId(), null, res.getName()));
+            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.INT_KW, "%a" + index_to++);
+            res_ins.add(new Instruction(Operation.load, TokenType.INT_KW, "%a" + se.getId(), null, res.getName()));
+            num_stack.add(res);
+        }
+        if(tt == TokenType.I1 && se.getTokenType() == TokenType.INT_KW){
+            num_stack.pop();
+            SymbolEntry res = new SymbolEntry(SymbolType.Var, TokenType.I1, "%a" + index_to++);
+            if(se.getType() == SymbolType.Local)
+                res_ins.add(new Instruction(Operation.icmp_eq, TokenType.I1, "%a" + se.getId(), "0", res.getName()));
+            else{
+                res_ins.add(new Instruction(Operation.icmp_eq, TokenType.I1, se.getName(), "0", res.getName()));
+            }
             num_stack.add(res);
         }
         return res_ins;

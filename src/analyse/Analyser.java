@@ -257,7 +257,7 @@ public final class Analyser {
             analyseExpr();
         }
         else if(check(TokenType.IF_KW)){
-            analyseIfStmt(level);
+            analyseIfStmt(level, false);
         }
 //        else if(check(TokenType.WHILE_KW)){
 //            analyseWhileStmt(level);
@@ -276,9 +276,10 @@ public final class Analyser {
             expect(TokenType.SEMICOLON);
             expr_stack.reset();
         }
-//        else{
-//            analyseExprStmt();
-//        }
+        else{
+            throw new ExpectedTokenError(Format.generateList(TokenType.INT_KW, TokenType.CONST_KW, TokenType.IDENT,
+                    TokenType.RETURN_KW, TokenType.L_BRACE, TokenType.SEMICOLON, TokenType.IF_KW), next());
+        }
     }
 
     private void analyseExprStmt() throws CompileError{
@@ -350,9 +351,9 @@ public final class Analyser {
                     next());
         }
 
-        while(check(TokenType.MOD, TokenType.MUL, TokenType.DIV, TokenType.EQ,
+        while(check(TokenType.AND, TokenType.OR, TokenType.MOD, TokenType.MUL, TokenType.DIV, TokenType.EQ,
                 TokenType.NEQ, TokenType.LT, TokenType.GT, TokenType.LE, TokenType.GE, TokenType.AS_KW)){
-            if(check(TokenType.MOD, TokenType.MUL, TokenType.DIV, TokenType.EQ,
+            if(check(TokenType.AND, TokenType.OR, TokenType.MOD, TokenType.MUL, TokenType.DIV, TokenType.EQ,
                     TokenType.NEQ, TokenType.LT, TokenType.GT, TokenType.LE, TokenType.GE)) {
                 type = analyseOperatorExpr(type.getTokenType());
             }
@@ -395,7 +396,8 @@ public final class Analyser {
 //            return TokenType.DOUBLE_KW;
 //        }
         else{
-            throw new AnalyzeError(ErrorCode.ExpectedToken, token.getStartPos());
+            throw new ExpectedTokenError(Format.generateList(TokenType.NUMBER_LITERAL),
+                    next());
         }
     }
 
@@ -420,7 +422,7 @@ public final class Analyser {
 //    }
 
     private SymbolEntry analyseOperatorExpr(TokenType tt) throws CompileError{
-        Token token = expect(TokenType.MOD, TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV, TokenType.EQ,
+        Token token = expect(TokenType.AND, TokenType.OR, TokenType.MOD, TokenType.PLUS, TokenType.MINUS, TokenType.MUL, TokenType.DIV, TokenType.EQ,
                 TokenType.NEQ, TokenType.LT, TokenType.GT, TokenType.LE, TokenType.GE);
         this.addAllInstruction(expr_stack.addOptAndGenerateInstruction(token.getTokenType(), tt, var_index));
         var_index = expr_stack.getVarIndex();
@@ -442,7 +444,7 @@ public final class Analyser {
         }
 //        this.addInstruction(getLocalOrParamAddress(token));
         expr_stack.pushNum(se);
-//        this.addInstruction(new Instruction(Operation.load, se.getTokenType(), "%" + se.getName(), null, "%" + var_index++));
+//        this.addInstruction(new Instruction(Operation.load, se.getTokenType(), "%a" + se.getName(), null, "%a" + var_index++));
         return se;
     }
 
@@ -470,12 +472,12 @@ public final class Analyser {
         System.out.println("ini:: " + token.getValueString());
         initializeSymbol(token.getValueString(), token.getStartPos());
         if(this.expr_stack.getTopNum().getType() == SymbolType.Local){
-            this.addAllInstruction(expr_stack.beforeGetTopNum(var_index));
-            this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%" + se.getId()));
+            this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.INT_KW));
+            this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%a" + se.getId()));
             var_index = expr_stack.getVarIndex();
         }
         else{
-            this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%" + se.getId()));
+            this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%a" + se.getId()));
         }
         return new SymbolEntry(SymbolType.Var, TokenType.VOID_KW, null);
     }
@@ -487,9 +489,9 @@ public final class Analyser {
         Instruction is;
         if(func.getReturnNum() != 0){
 //            this.addInstruction(new Instruction(Operation.stackalloc, String.valueOf(func.getReturnSlot())));
-            SymbolEntry se = new SymbolEntry(SymbolType.Var, func.getReturnType(), "%" + var_index);
+            SymbolEntry se = new SymbolEntry(SymbolType.Var, func.getReturnType(), "%a" + var_index);
             expr_stack.pushNum(se);
-            is = new Instruction(Operation.call, func.getReturnType(), String.valueOf(func.getId()), null, "%" + var_index++);
+            is = new Instruction(Operation.call, func.getReturnType(), String.valueOf(func.getId()), null, "%a" + var_index++);
         }
         else{
             is = new Instruction(Operation.call, String.valueOf(func.getId()));
@@ -521,7 +523,7 @@ public final class Analyser {
 //
     private List<SymbolEntry> analyseCallParamList(List<SymbolEntry> param_list) throws CompileError{
         int param_num = 1, i = 0;
-        this.expr_stack = new ExprStack();
+        this.expr_stack.reset();
         SymbolEntry type = analyseExpr();
         List<SymbolEntry> res_list = new ArrayList<>();
         if(param_list.get(i++).getTokenType() != type.getTokenType()){
@@ -530,13 +532,13 @@ public final class Analyser {
 //        while (!this.expr_stack.operation_stack.empty() && this.expr_stack.operation_stack.peek() != TokenType.L_PAREN) {
         this.addAllInstruction(expr_stack.addAndReset(type.getTokenType(), var_index));
         this.var_index = expr_stack.getVarIndex();
-        this.addAllInstruction(expr_stack.beforeGetTopNum(var_index));
+        this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.INT_KW));
         res_list.add(expr_stack.getTopNum());
         var_index = expr_stack.getVarIndex();
 //        }
         while(check(TokenType.COMMA)){
             expect(TokenType.COMMA);
-            this.expr_stack = new ExprStack();
+            this.expr_stack.reset();
             type = analyseExpr();
             if(param_list.get(i++).getTokenType() != type.getTokenType()){
                 throw new AnalyzeError(ErrorCode.ExprTypeWrong, peek().getStartPos());
@@ -546,7 +548,7 @@ public final class Analyser {
 //            }
             this.addAllInstruction(expr_stack.addAndReset(type.getTokenType(), var_index));
             this.var_index = expr_stack.getVarIndex();
-            this.addAllInstruction(expr_stack.beforeGetTopNum(var_index));
+            this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.INT_KW));
             res_list.add(expr_stack.getTopNum());
             var_index = expr_stack.getVarIndex();
             param_num++;
@@ -580,7 +582,7 @@ public final class Analyser {
             }
             // 返回值off是0
             // alloca原为arga，第二个参数为arg的标号，返回值id为0
-//            this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%" + var_index));
+//            this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%a" + var_index));
 //            var_index++;
 //            int save_index = var_index;
             // 1. %var_index = alloca i32, align 4
@@ -591,19 +593,24 @@ public final class Analyser {
             }
             this.addAllInstruction(expr_stack.addAndReset(type.getTokenType(), var_index));
             this.var_index = this.expr_stack.getVarIndex();
-            SymbolEntry se = expr_stack.getTopNum();
-//            Instruction is = new Instruction(Operation.store, return_type, String.valueOf(se.getName()), "0", "%" + String.valueOf(save_index));
+            SymbolEntry se;
+//            Instruction is = new Instruction(Operation.store, return_type, String.valueOf(se.getName()), "0", "%a" + String.valueOf(save_index));
 //            if(se.getType() == SymbolType.Iteral){
 //                is.setIsNum1();
 //            }
 //            this.addInstruction(is);
             if(return_type != TokenType.VOID_KW) {
 //            this.addInstruction(new Instruction(Operation.load, return_type, String.valueOf(0), String.valueOf(0), String.valueOf(var_index)));
+                this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.INT_KW));
                 se = expr_stack.getTopNum();
+                var_index = expr_stack.getVarIndex();
                 if(se.isIteral())
                     this.addInstruction(new Instruction(Operation.ret, return_type, String.valueOf(se.getValue())));
-                else{
+                else if(se.isVar()){
                     this.addInstruction(new Instruction(Operation.ret, return_type, String.valueOf(se.getName())));
+                }
+                else{
+                    this.addInstruction(new Instruction(Operation.ret, return_type, "%a" + String.valueOf(se.getId())));
                 }
             }
         }
@@ -614,19 +621,22 @@ public final class Analyser {
         expr_stack.reset();
     }
 
-    private int analyseIfStmt(int level) throws CompileError{
+    private int analyseIfStmt(int level, boolean in_else_if) throws CompileError{
         expect(TokenType.IF_KW);
         onCond = true;
+        int if_label = var_index;
+        if(in_else_if){
+            this.addInstruction(new Instruction(Operation.label, "a" + String.valueOf(var_index++)));
+        }
         SymbolEntry type = analyseExpr();
         onCond = false;
         this.addAllInstruction(expr_stack.addAndReset(type.getTokenType(), var_index));
         this.var_index = this.expr_stack.getVarIndex();
 
-        this.addAllInstruction(expr_stack.beforeGetTopNum(var_index));
+        this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.I1));
         SymbolEntry se = this.expr_stack.getTopNum();
         var_index = expr_stack.getVarIndex();
 
-        //如果是真的，跳到下一个指令
         Instruction br_i1 = new Instruction(Operation.br_i1);
         if(se.getType() == SymbolType.Iteral){
             br_i1.setSaveAt(String.valueOf(se.getValue()));
@@ -634,36 +644,28 @@ public final class Analyser {
         else{
             br_i1.setSaveAt(se.getName());
         }
-        int if_label = var_index;
-        br_i1.setOp1("%" + if_label);
+        if(!in_else_if) {
+            if_label = var_index;
+        }
+        br_i1.setOp1("%a" + var_index);
         this.addInstruction(br_i1);
-        this.addInstruction(new Instruction(Operation.label, String.valueOf(var_index++)));
+        this.addInstruction(new Instruction(Operation.label, "a" + String.valueOf(var_index++)));
         List<Instruction> br_list = new ArrayList<>();
-        br_list.add(new Instruction(Operation.br, String.valueOf(0)));
-        int index = this.function_body.size();
+        br_list.add(new Instruction(Operation.br, "%a" + String.valueOf(0)));
 
         //分析if中的语句
-        Block(null, level + 1);
-
-    // 如果if block分析完成后最后一个语句是ret
-//        if(this.function_body.get(size - 1).getOpt() == Operation.ret){
-////            int dis = size - index;
-////            br_true.setOp1(String.valueOf(dis));
-//            if(check(TokenType.ELSE_KW)){
-//                expect(TokenType.ELSE_KW);
-//                if(check(TokenType.IF_KW)){
-//                    // else if，递归调用if分析
-//                    analyseIfStmt(level);
-//                }
-//                else{
-//                    // else 语句
-//                    Block(null, level + 1);
-//                    this.addInstruction(new Instruction(Operation.br, String.valueOf(0)));
-//                }
-//            }
-//        }
-//        else{
-            // if执行完成后要跳转到else block之后
+        if(check(TokenType.L_BRACE) ){
+            Block(null, level + 1);
+        }
+        else{
+            this.def_table.level = level + 1;
+            BlockItem(return_type, level + 1);
+            this.def_table.levelDown();
+            while(check(TokenType.SEMICOLON)){
+                expect(TokenType.SEMICOLON);
+            }
+            expr_stack.reset();
+        }
         this.addInstruction(br_list.get(0));
         Instruction br;
         int bri1_label2;
@@ -671,7 +673,7 @@ public final class Analyser {
             expect(TokenType.ELSE_KW);
             if(check(TokenType.IF_KW)){
                 // else if，递归调用if分析
-                bri1_label2 = analyseIfStmt(level);
+                bri1_label2 = analyseIfStmt(level, true);
                 br = new Instruction(Operation.br);
                 br_list.add(br);
                 this.addInstruction(br);
@@ -679,22 +681,34 @@ public final class Analyser {
             else{
                 // else 语句
                 bri1_label2 = var_index;
-                addInstruction(new Instruction(Operation.label, String.valueOf(var_index++)));
-                Block(null, level + 1);
+                addInstruction(new Instruction(Operation.label, "a" + String.valueOf(var_index++)));
+                if(check(TokenType.L_BRACE) ){
+                    Block(null, level + 1);
+                }
+                else{
+                    this.def_table.level = level + 1;
+                    BlockItem(return_type, level + 1);
+                    this.def_table.levelDown();
+                    while(check(TokenType.SEMICOLON)){
+                        expect(TokenType.SEMICOLON);
+                    }
+                    expr_stack.reset();
+                }
                 br = new Instruction(Operation.br);
                 br_list.add(br);
                 this.addInstruction(br);
             }
             if(br_i1.getOp2() == null){
-                br_i1.setOp2("%" + bri1_label2);
+                br_i1.setOp2("%a" + bri1_label2);
             }
         }
-//        br_false.setOp1(String.valueOf(dis));
-//        }
         int end_label = var_index;
-        addInstruction(new Instruction(Operation.label, String.valueOf(var_index++)));
+        addInstruction(new Instruction(Operation.label, "a" + String.valueOf(var_index++)));
         for(Instruction b: br_list) {
-            b.setOp1("%" + end_label);
+            b.setOp1("%a" + end_label);
+        }
+        if(br_i1.getOp2() == null){
+            br_i1.setOp2("%a" + end_label);
         }
         return if_label;
     }
@@ -748,7 +762,7 @@ public final class Analyser {
         }
         else{
             se = functionAddLocal(type.getTokenType(),nameToken.getValueString(), true, true, nameToken.getStartPos(), level);
-            this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%" + String.valueOf(se.getId())));
+            this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%a" + String.valueOf(se.getId())));
         }
         SymbolEntry tt = analyseExpr();
         if(tt.getTokenType() != type.getTokenType()){
@@ -756,8 +770,8 @@ public final class Analyser {
         }
         this.addAllInstruction(this.expr_stack.addAndReset(tt.getTokenType(), var_index));
         this.var_index = this.expr_stack.getVarIndex();
-        this.addAllInstruction(expr_stack.beforeGetTopNum(var_index));
-        this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%" + se.getId()));
+        this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.INT_KW));
+        this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%a" + se.getId()));
         var_index = expr_stack.getVarIndex();
         this.onAssign = false;
         expect(TokenType.SEMICOLON);
@@ -790,7 +804,7 @@ public final class Analyser {
             else{
                 // 局部变量
                 se = functionAddLocal(type, nameToken.getValueString(), true, false, nameToken.getStartPos(), level);
-                this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%" + String.valueOf(se.getId())));
+                this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%a" + String.valueOf(se.getId())));
             }
             SymbolEntry tt = analyseExpr();
             if(tt.getTokenType() != type){
@@ -799,8 +813,8 @@ public final class Analyser {
             }
             this.addAllInstruction(this.expr_stack.addAndReset(tt.getTokenType(), var_index));
             this.var_index = this.expr_stack.getVarIndex();
-            this.addAllInstruction(expr_stack.beforeGetTopNum(var_index));
-            this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%" + se.getId()));
+            this.addAllInstruction(expr_stack.beforeGetTopNum(var_index, TokenType.INT_KW));
+            this.addInstruction(new Instruction(Operation.store, this.expr_stack.getTopNum().getTokenType(), this.expr_stack.getTopNum().getName(), "i32", "%a" + se.getId()));
             var_index = expr_stack.getVarIndex();
             this.onAssign = false;
         }
@@ -812,7 +826,7 @@ public final class Analyser {
             else{
                 // 局部变量
                 se = functionAddLocal(type,nameToken.getValueString(), false, false, nameToken.getStartPos(), level);
-                this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%" + String.valueOf(se.getId())));
+                this.addInstruction(new Instruction(Operation.alloca, TokenType.INT_KW, null,null, "%a" + String.valueOf(se.getId())));
             }
         }
     }

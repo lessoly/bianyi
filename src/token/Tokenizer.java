@@ -384,6 +384,22 @@ public class Tokenizer {
                 return new Token(TokenType.COLON, a, it.previousPos(), it.currentPos());
             case ';':
                 return new Token(TokenType.SEMICOLON, a, it.previousPos(), it.currentPos());
+            case '|':
+                if(it.peekChar() == '|'){
+                    it.nextChar();
+                    return new Token(TokenType.OR, "||", it.previousPos(), it.currentPos());
+                }
+                else {
+                    throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos(), String.valueOf(a));
+                }
+            case '&':
+                if(it.peekChar() == '&'){
+                    it.nextChar();
+                    return new Token(TokenType.AND, "&&", it.previousPos(), it.currentPos());
+                }
+                else {
+                    throw new TokenizeError(ErrorCode.InvalidInput, it.previousPos(), String.valueOf(a));
+                }
             case 0:
                 return new Token(TokenType.EOF, "", it.previousPos(), it.currentPos());
             default:

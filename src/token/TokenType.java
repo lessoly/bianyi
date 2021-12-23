@@ -5,9 +5,9 @@ public enum TokenType {
     None, IDENT, PLUS, MINUS, MUL, DIV, MOD, ASSIGN, EQ, NEQ, LT, GT, LE, GE,
     L_PAREN, R_PAREN, EOF, L_BRACE, R_BRACE, ARROW, COMMA, COLON, SEMICOLON,
     FN_KW, LET_KW, CONST_KW, AS_KW, WHILE_KW, IF_KW, ELSE_KW, RETURN_KW, BREAK_KW, CONTINUE_KW,
-    INT_KW, VOID_KW, DOUBLE_KW, INT_POINTER,
+    INT_KW, VOID_KW, DOUBLE_KW, INT_POINTER, I1,
     NUMBER_LITERAL, DOUBLE_LITERAL, STRING_LITERAL, CHAR_LITERAL, NEGATE,
-    COMMENT,
+    COMMENT, OR, AND
     ;
 
     @Override
@@ -74,7 +74,7 @@ public enum TokenType {
             case CHAR_LITERAL:
                 return "char";
             case INT_KW:
-                return "int kw";
+                return "i32";
             case VOID_KW:
                 return "void kw";
             case DOUBLE_KW:
@@ -95,6 +95,8 @@ public enum TokenType {
                 return "comment";
             case NEGATE:
                 return "negate !";
+            case I1:
+                return "i1";
             default:
                 return "InvalidToken";
         }
